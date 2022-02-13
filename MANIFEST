@@ -2,6 +2,9 @@ lib/Math/Sequence/DeBruijn.pm
 Makefile.PL
 MANIFEST
 t/000_basic.t
+t/020_n_is_2.t
+t/030_n_is_3.t
+t/040_n_is_4.t
 t/950_pod.t
 t/960_pod_coverage.t
 t/980_versions.t

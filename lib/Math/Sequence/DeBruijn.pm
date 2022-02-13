@@ -1,11 +1,51 @@
 package Math::Sequence::DeBruijn;
 
-use 5.010;
+use 5.028;
 use strict;
 use warnings;
 no  warnings 'syntax';
 
+use experimental 'signatures';
+use experimental 'lexical_subs';
+use Exporter ();
+
 our $VERSION = '2022021301';
+our @EXPORT  = qw [debruijn];
+our @ISA     = qw [Exporter];
+
+
+#
+# This a translation of the Python program given at the Wikipedia
+# page on De Bruijn sequences.
+# (https://en.wikipedia.org/wiki/De_Bruijn_sequence)
+#
+
+sub debruijn ($alphabet, $n) {
+    $alphabet = [split // => $alphabet] unless ref $alphabet;
+    my $size  = @$alphabet;
+    my @a     = (0) x ($size * $n);
+
+    my $sequence = [];
+
+    my sub db ($t, $p) {
+        if ($t > $n) {
+            push @$sequence => @a [1 .. $p] if $n % $p == 0;
+        }
+        else {
+            $a [$t] = $a [$t - $p];
+            __SUB__ -> ($t + 1, $p);
+            foreach my $j ($a [$t - $p] + 1 .. ($size - 1)) {
+                $a [$t] = $j;
+                __SUB__ -> ($t + 1, $t);
+            }
+        }
+    };
+
+    db (1, 1);
+
+    join "" => @$alphabet [@$sequence];
+}
+
 
 
 1;
@@ -18,13 +58,58 @@ Math::Sequence::DeBruijn - Abstract
 
 =head1 SYNOPSIS
 
+ use Math::Sequence::DeBruijn;      # Exports 'debruijn'
+ use Math::Sequence::DeBruijn ();   # No exports.
+
 =head1 DESCRIPTION
 
-=head1 BUGS
+This module provides a single subroutine, C<debruijn>, which returns
+a L<De Bruijn sequence|https://en.wikipedia.org/wiki/De_Bruijn_sequence>
+for the given alphabet I<A> and size I<n>. A De Bruijn sequence of an
+alphabet I<A> and size I<n> is a I<cyclic> sequence where every substring
+of length I<n> over the alphabet I<A> appears exactly once in the sequence.
 
-=head1 TODO
+For instance, if I<A = {0, 1}> and I<n = 3>, a possible De Bruijn sequence
+would be I<00010111>, as each possible substring of length 3
+(I<000>, I<001>, I<010>, I<011>, I<100>, I<101>, I<110>, and I<111>)
+appears exactly once. Note that the sequence is cyclic, so I<110> can
+be found by looking at the last two, and first character of the sequence.
 
-=head1 SEE ALSO
+C<debruijn> takes two arguments:
+
+=over 2
+
+=item C<$alphabet>
+
+Either an arrayref with the symbols to be used in the alphabet, or a
+string witht the same. For binary strings, one would use C<[0, 1]>
+or C<"01">.
+
+=item C<$n>
+
+The length of the substrings to consider.
+
+=back
+
+The sequence is returned as a string.
+
+Be aware that the sequence returned has length C<k^n>, where C<k> is
+the size of the alphabet. This is the optimal length, so it cannot be
+improved, but it does mean both the running time, and memory usage of
+the subroutine is exponential in its second argument.
+
+=head1 EXAMPLE
+
+ debruijn ("Perl", 3);
+
+This returns
+C<PPPePPrPPlPeePerPelPrePrrPrlPlePlrPlleeereelerrerlelrellrrrlrlll>.
+
+=head1 ACKNOWLEDGEMENT
+
+The code is a port of the Python code given in the
+L<Wikipedia article|https://en.wikipedia.org/wiki/De_Bruijn_sequence>
+about De Bruijn sequences.
 
 =head1 DEVELOPMENT
 
@@ -33,7 +118,7 @@ L<< git://github.com/Abigail/Math-Sequence-DeBruijn.git >>.
 
 =head1 AUTHOR
 
-Abigail, L<< mailto:cpan@abigail.be >>.
+Abigail, L<< mailto:cpan@abigail.freedom.nl >>.
 
 =head1 COPYRIGHT and LICENSE
 
